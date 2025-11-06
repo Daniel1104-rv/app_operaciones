@@ -1,37 +1,77 @@
-const form = document.getElementById("form-op");
-const msg = document.getElementById("msg");
+document.addEventListener('DOMContentLoaded', () => {
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+    // URL DE NODO WEBHOOK EN N8N (¡Asegúrate de que esta URL sea la de producción y esté activa!)
+    const N8N_WEBHOOK_URL = "https://daniel112003.app.n8n.cloud/webhook/b5e7f13f-047e-414c-ac64-64716387491c";
 
-  const texto = document.getElementById("texto").value.trim();
-  if (!texto) {
-    msg.innerHTML = "<div class='alert alert-warning'>⚠️ Escribe una operación antes de enviar.</div>";
-    return;
-  }
+    // Referencias a los elementos del DOM
+    const btnCalcular = document.getElementById('btnCalcular');
+    const textoOperacion = document.getElementById('textoOperacion');
+    
+    // Alertas de resultado y error
+    const divResultado = document.getElementById('divResultado');
+    const resultadoTexto = document.getElementById('resultadoTexto');
+    const divError = document.getElementById('divError');
+    const errorTexto = document.getElementById('errorTexto');
 
-  msg.innerHTML = "<div class='alert alert-info'>Enviando a n8n...</div>";
-  const button = form.querySelector("button");
-  button.disabled = true; // 🔒 Evita clics dobles
+    const textoOriginalBtn = 'Calcular <i class="bi bi-send ms-1"></i>';
 
-  try {
-    // ✅ Webhook ACTIVADO (sin -test)
-    const resp = await fetch("https://daniel112003.app.n8n.cloud/webhook/2b9c4088-7661-4e69-8aa7-b1e92945b1fb", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto })
+    btnCalcular.addEventListener('click', () => {
+        const query = textoOperacion.value;
+
+        if (query.trim() === "") {
+            alert("Por favor, escribe una operación.");
+            return;
+        }
+
+        // --- Estado de Carga ---
+        // Ocultar alertas anteriores
+        divResultado.style.display = 'none';
+        divError.style.display = 'none';
+        
+        // Deshabilitar botón y mostrar spinner dentro del botón
+        btnCalcular.disabled = true;
+        btnCalcular.innerHTML = `
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Calculando...
+        `;
+
+        // 2. Enviar la solicitud a n8n
+        fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                textoUsuario: query
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Si la respuesta del servidor no es 200 OK, la tratamos como un error
+                throw new Error(`Error de red: ${response.statusText}`);
+            }
+            return response.json(); // Intenta parsear la respuesta como JSON
+        })
+        .then(data => {
+            // --- Estado de Éxito ---
+            // Restaurar botón
+            btnCalcular.disabled = false;
+            btnCalcular.innerHTML = textoOriginalBtn;
+
+            // 3. Mostrar el resultado que n8n nos devuelve
+            resultadoTexto.innerText = data.respuestaCalculada;
+            divResultado.style.display = 'block';
+        })
+        .catch(error => {
+            // --- Estado de Error ---
+            // Restaurar botón
+            btnCalcular.disabled = false;
+            btnCalcular.innerHTML = textoOriginalBtn;
+
+            // Manejo de errores (JSON inválido o error de red)
+            console.error('Error:', error);
+            errorTexto.innerText = 'Hubo un error al procesar la solicitud. Revisa la consola para más detalles.';
+            divError.style.display = 'block';
+        });
     });
-
-    if (resp.ok) {
-      msg.innerHTML = "<div class='alert alert-success'>✅ Operación enviada y guardada correctamente.</div>";
-      form.reset();
-    } else {
-      msg.innerHTML = "<div class='alert alert-danger'>❌ Error al enviar. Revisa tu flujo en n8n.</div>";
-    }
-  } catch (err) {
-    msg.innerHTML = `<div class='alert alert-danger'>⚠️ No se pudo conectar con n8n.<br>${err.message}</div>`;
-  } finally {
-    // 🕒 Rehabilita el botón tras 2 segundos
-    setTimeout(() => (button.disabled = false), 2000);
-  }
 });
