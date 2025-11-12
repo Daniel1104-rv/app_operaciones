@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // 🌐 URL DEL WEBHOOK DE N8N
-    const N8N_WEBHOOK_URL = "https://daniel112003.app.n8n.cloud/webhook/b5e7f13f-047e-414c-ac64-64716387491c";
+    const N8N_WEBHOOK_URL = "https://daniel2003.app.n8n.cloud/webhook/b5e7f13f-047e-414c-ac64-64716387491c";
 
     // 📡 Función para obtener la IP pública del cliente (IPv4)
     async function getPublicIP() {
